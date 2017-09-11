@@ -1,6 +1,7 @@
 package com.imooc.dataobject;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicUpdate;
 
 import javax.persistence.Entity;
@@ -15,6 +16,7 @@ import javax.persistence.Id;
 @Entity
 @Data
 @DynamicUpdate
+@NoArgsConstructor
 public class ProductCategory {
 
     @Id
@@ -22,4 +24,9 @@ public class ProductCategory {
     private Integer categoryId;
     private String categoryName;
     private Integer categoryType;
+
+    public ProductCategory(String categoryName, Integer categoryType) {
+        this.categoryName = categoryName;
+        this.categoryType = categoryType;
+    }
 }
