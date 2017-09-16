@@ -5,6 +5,8 @@ import com.imooc.dataobject.OrderMaster;
 import com.imooc.dataobject.ProductInfo;
 import com.imooc.dto.CartDTO;
 import com.imooc.dto.OrderDTO;
+import com.imooc.enums.OrderSatusEnum;
+import com.imooc.enums.PayStatusEnum;
 import com.imooc.enums.ResultEnum;
 import com.imooc.exception.SellException;
 import com.imooc.repository.OrderDetailRepository;
@@ -55,7 +57,7 @@ public class OrderServiceImpl implements OrderService {
             if (productInfo == null) {
                 throw new SellException(ResultEnum.PRODUCT_NOT_EXIST);
             }
-            orderAmount = orderDetail.getProductPrice()
+            orderAmount = productInfo.getProductPrice()
                     .multiply(BigDecimal.valueOf(orderDetail.getProductQuantity()))
                     .add(orderAmount);
             orderDetail.setDetailId(KeyUtil.getUniqueKey());
@@ -65,15 +67,19 @@ public class OrderServiceImpl implements OrderService {
         }
 
         OrderMaster orderMaster = new OrderMaster();
+        BeanUtils.copyProperties(orderDTO, orderMaster);
         orderMaster.setOrderId(orderId);
         orderMaster.setOrderAmount(orderAmount);
-        BeanUtils.copyProperties(orderDTO, orderMaster);
+        orderMaster.setOrderStatus(OrderSatusEnum.NEW.getCode());
+        orderMaster.setPayStatus(PayStatusEnum.WAIT.getCode());
         orderMasterRepository.save(orderMaster);
 
-        BiFunction<String, Integer, CartDTO> newCartDTO = CartDTO::new;
         List<CartDTO> cartDTOList = orderDTO.getOrderDetailList()
                 .stream()
-                .map(orderDetail -> newCartDTO.apply(orderDetail.getProductId(), orderDetail.getProductQuantity()))
+                .map(orderDetail -> {
+                    BiFunction<String, Integer, CartDTO> newCartDTO = CartDTO::new;
+                    return newCartDTO.apply(orderDetail.getProductId(), orderDetail.getProductQuantity());
+                })
                 .collect(Collectors.toList());
         productService.decreaseStock(cartDTOList);
         return orderDTO;
