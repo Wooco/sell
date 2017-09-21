@@ -15,6 +15,7 @@ import com.imooc.repository.OrderMasterRepository;
 import com.imooc.service.OrderService;
 import com.imooc.service.ProductService;
 import com.imooc.utils.KeyUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
  * 2017/9/16 14:34
  */
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     private final ProductService productService;
@@ -116,8 +118,40 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional
     public OrderDTO cancel(OrderDTO orderDTO) {
-        return null;
+
+        OrderMaster orderMaster = new OrderMaster();
+
+        //Judgment order status
+        if (!orderDTO.getOrderStatus().equals(OrderSatusEnum.NEW.getCode())) {
+            log.error("【取消订单】订单状态不正确，orderId={}, orderStatus={}", orderDTO.getOrderId(), orderDTO.getOrderStatus());
+            throw new SellException(ResultEnum.ORDER_STATUS_ERROR);
+        }
+
+        //Update order status
+        orderDTO.setOrderStatus(OrderSatusEnum.CANCEL.getCode());
+        BeanUtils.copyProperties(orderDTO, orderMaster);
+        OrderMaster updateResult = orderMasterRepository.save(orderMaster);
+        if (updateResult == null) {
+            log.error("【取消订单】更新失败，orderMaster={}", orderMaster);
+            throw new SellException(ResultEnum.ORDER_UPDATE_FAIL);
+        }
+
+        //Return the inventory
+        if (CollectionUtils.isEmpty(orderDTO.getOrderDetailList())) {
+            log.error("【取消订单】订单中无商品详情，orderDTO={}", orderDTO);
+            throw new SellException(ResultEnum.ORDER_DETAIL_EMPTY);
+        }
+        List<CartDTO> cartDTOList = orderDTO.getOrderDetailList().stream()
+                .map(detail -> new CartDTO(detail.getProductId(), detail.getProductQuantity())).collect(Collectors.toList());
+        productService.increaseStock(cartDTOList);
+
+        //A refund is required if the payment is made
+        if (orderDTO.getOrderStatus().equals(PayStatusEnum.SUCCESS.getCode())) {
+            //TODO
+        }
+        return orderDTO;
     }
 
     @Override
