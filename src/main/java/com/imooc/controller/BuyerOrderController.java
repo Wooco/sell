@@ -68,12 +68,26 @@ public class BuyerOrderController {
         PageRequest request = new PageRequest(page, size);
         Page<OrderDTO> orderDTOPage = orderService.findList(openid, request);
 
-
-
         return ResultVOUtil.success(orderDTOPage.getContent());
     }
 
     //Order detail
+    @GetMapping("/detail")
+    public ResultVO<OrderDTO> detail(@RequestParam("openid") String openid, @RequestParam("orderId") String orderId) {
+
+        //TODO 不安全的用法,改进
+        OrderDTO orderDTO = orderService.findOne(orderId);
+        return ResultVOUtil.success(orderDTO);
+    }
 
     //Cancel order
+    @PostMapping("/cancel")
+    public ResultVO cancel(@RequestParam("openid") String openid, @RequestParam("orderId") String orderId) {
+
+        //TODO 不安全做法，改进
+        OrderDTO orderDTO = orderService.findOne(orderId);
+        orderService.cancel(orderDTO);
+
+        return ResultVOUtil.success();
+    }
 }
