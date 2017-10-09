@@ -6,6 +6,7 @@ import com.imooc.dto.OrderDTO;
 import com.imooc.enums.ResultEnum;
 import com.imooc.exception.SellException;
 import com.imooc.form.OrderForm;
+import com.imooc.service.BuyerService;
 import com.imooc.service.OrderService;
 import com.imooc.utils.ResultVOUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -31,10 +32,16 @@ import java.util.Map;
 @Slf4j
 public class BuyerOrderController {
 
-    @Autowired
-    private OrderService orderService;
+    private final OrderService orderService;
 
-    //Create order
+    private final BuyerService buyerService;
+
+    @Autowired
+    public BuyerOrderController(OrderService orderService, BuyerService buyerService) {
+        this.orderService = orderService;
+        this.buyerService = buyerService;
+    }
+
     @PostMapping("/create")
     public ResultVO<Map<String, String>> create(@Valid OrderForm orderForm, BindingResult bindingResult) {
 
@@ -55,7 +62,6 @@ public class BuyerOrderController {
         return ResultVOUtil.success(map);
     }
 
-    //Order list
     @GetMapping("/list")
     public ResultVO<List<OrderDTO>> list(@RequestParam("openid") String openid,
                                          @RequestParam(value = "page", defaultValue = "0") Integer page,
@@ -71,23 +77,17 @@ public class BuyerOrderController {
         return ResultVOUtil.success(orderDTOPage.getContent());
     }
 
-    //Order detail
     @GetMapping("/detail")
     public ResultVO<OrderDTO> detail(@RequestParam("openid") String openid, @RequestParam("orderId") String orderId) {
 
-        //TODO 不安全的用法,改进
-        OrderDTO orderDTO = orderService.findOne(orderId);
+        OrderDTO orderDTO = buyerService.findOrderOne(openid, orderId);
         return ResultVOUtil.success(orderDTO);
     }
 
-    //Cancel order
     @PostMapping("/cancel")
     public ResultVO cancel(@RequestParam("openid") String openid, @RequestParam("orderId") String orderId) {
 
-        //TODO 不安全做法，改进
-        OrderDTO orderDTO = orderService.findOne(orderId);
-        orderService.cancel(orderDTO);
-
+        buyerService.cancelOrder(openid, orderId);
         return ResultVOUtil.success();
     }
 }
